@@ -7,6 +7,8 @@ open System.Net.Http
 open System.Collections.Concurrent
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
+open Microsoft.AspNetCore.Hosting
+open Microsoft.Extensions.Hosting
 
 module Domain =
 
@@ -150,6 +152,12 @@ module Api =
 [<EntryPoint>]
 let main args =
     let builder = WebApplication.CreateBuilder args
+    builder.WebHost.ConfigureKestrel(fun options ->
+        options.ListenLocalhost 5000
+        options.ListenLocalhost(5002, fun listenOptions ->
+            listenOptions.UseHttps() |> ignore
+        )
+    ) |> ignore
     let app = builder.Build()
 
     app.MapPost(
@@ -157,5 +165,5 @@ let main args =
         RequestDelegate(fun ctx -> Api.HandleWebhook ctx :> Threading.Tasks.Task)
     ) |> ignore
 
-    app.Run "http://127.0.0.1:5000"
+    app.Run()
     0
