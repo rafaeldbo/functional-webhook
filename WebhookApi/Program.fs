@@ -30,7 +30,6 @@ module Api =
 
         match processResult with
         | Ok transaction ->
-            markConfirmed transaction.TransactionId
             do! confirmTransaction transaction.TransactionId
             ctx.Response.StatusCode <- 200
             do! ctx.Response.WriteAsJsonAsync {| status = "confirmed"; transaction_id = transaction.TransactionId |}

@@ -13,11 +13,24 @@ open Domain
 let GatewayUrl = "http://127.0.0.1:5001"
 
 // Lista em memória segura para concorrência simulando o banco de dados.
-let Confirmations = ConcurrentDictionary<string, bool>()
 let HttpClient = new HttpClient()
 
-let IsConfirmed txId = Confirmations.ContainsKey(txId)
-let markConfirmed txId = Confirmations.TryAdd(txId, true) |> ignore
+let IsConfirmed (txId: string) : bool =
+    try
+        let dbPath = Path.Combine(AppContext.BaseDirectory, "transactions.db")
+        use connection = new SqliteConnection($"Data Source={dbPath}")
+        connection.Open()
+
+        use command = connection.CreateCommand()
+        command.CommandText <- "SELECT COUNT(1) FROM Transactions WHERE TransactionId = @TransactionId"
+        command.Parameters.AddWithValue("@TransactionId", txId) |> ignore
+
+        match command.ExecuteScalar() with
+        | :? int64 as n -> n > 0L
+        | :? int as n -> n > 0
+        | _ -> false
+    with
+    | _ -> false
 
 let cancelTransaction (txId: string) = task {
     let payload = {| transaction_id = txId |}
