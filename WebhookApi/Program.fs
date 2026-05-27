@@ -4,6 +4,7 @@ open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.Hosting
+open FsToolkit.ErrorHandling
 
 open Infrastructure
 
@@ -20,11 +21,16 @@ module Api =
             | true, v -> Some (v.ToString())
             | _ -> None
 
-        // Executa o pipeline puro e trata os efeitos colaterais com base no padrão correspondente.
-        match processWebhook token body IsConfirmed with
+
+        let processResult = result {
+            let! transaction = processWebhook token body IsConfirmed
+            do! saveTransaction transaction
+            return transaction
+        }
+
+        match processResult with
         | Ok transaction ->
             markConfirmed transaction.TransactionId
-            do saveTransaction transaction
             do! confirmTransaction transaction.TransactionId
             ctx.Response.StatusCode <- 200
             do! ctx.Response.WriteAsJsonAsync {| status = "confirmed"; transaction_id = transaction.TransactionId |}

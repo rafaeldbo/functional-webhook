@@ -13,7 +13,7 @@ let private SecretToken = "meu-token-secreto"
 let private baseError code reason = 
     Error (EarlyError(code, {| status = "cancelled"; reason = reason |}))
 
-let private txError code reason txId = 
+let txError code reason txId = 
     Error (TransactionError(code, {| status = "cancelled"; reason = reason; transaction_id = txId |}, txId))
 
 let validateToken (token: string option) =

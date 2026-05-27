@@ -8,6 +8,7 @@ open System.Text.Json
 open System.Collections.Concurrent
 open Microsoft.Data.Sqlite
 open Models
+open Domain
 
 let GatewayUrl = "http://127.0.0.1:5001"
 
@@ -55,19 +56,24 @@ let createDatabase () =
     command.ExecuteNonQuery() |> ignore
 
 // Salva o registro no banco de dados de forma síncrona
-let saveTransaction (transaction: TransactionData) =
-    use connection = new SqliteConnection(ConnectionString)
-    connection.Open()
+let saveTransaction (transaction: TransactionData) : Result<unit, WebhookError> =
+    try
+        use connection = new SqliteConnection(ConnectionString)
+        connection.Open()
 
-    use command = connection.CreateCommand()
-    command.CommandText <- "
-        INSERT INTO Transactions (TransactionId, Event, Amount, Currency, Timestamp)
-        VALUES (@TransactionId, @Event, @Amount, @Currency, @Timestamp)"
+        use command = connection.CreateCommand()
+        command.CommandText <- "
+            INSERT INTO Transactions (TransactionId, Event, Amount, Currency, Timestamp)
+            VALUES (@TransactionId, @Event, @Amount, @Currency, @Timestamp)"
 
-    command.Parameters.AddWithValue("@TransactionId", transaction.TransactionId) |> ignore
-    command.Parameters.AddWithValue("@Event", transaction.Event) |> ignore
-    command.Parameters.AddWithValue("@Amount", transaction.Amount) |> ignore
-    command.Parameters.AddWithValue("@Currency", transaction.Currency) |> ignore
-    command.Parameters.AddWithValue("@Timestamp", transaction.Timestamp.ToString "O") |> ignore 
+        command.Parameters.AddWithValue("@TransactionId", transaction.TransactionId) |> ignore
+        command.Parameters.AddWithValue("@Event", transaction.Event) |> ignore
+        command.Parameters.AddWithValue("@Amount", transaction.Amount) |> ignore
+        command.Parameters.AddWithValue("@Currency", transaction.Currency) |> ignore
+        command.Parameters.AddWithValue("@Timestamp", transaction.Timestamp.ToString "O") |> ignore 
 
-    command.ExecuteNonQuery() |> ignore
+        command.ExecuteNonQuery() |> ignore
+        Ok ()
+    with
+        | ex ->
+            txError 500 (sprintf "Erro ao salvar transação: %s" ex.Message) transaction.TransactionId
