@@ -12,9 +12,9 @@ let Confirmations = ConcurrentDictionary<string, bool>()
 let HttpClient = new HttpClient()
 
 let IsConfirmed txId = Confirmations.ContainsKey(txId)
-let MarkConfirmed txId = Confirmations.TryAdd(txId, true) |> ignore
+let markConfirmed txId = Confirmations.TryAdd(txId, true) |> ignore
 
-let CancelTransaction (txId: string) = task {
+let cancelTransaction (txId: string) = task {
     let payload = {| transaction_id = txId |}
     let json = JsonSerializer.Serialize payload
     use content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -22,7 +22,7 @@ let CancelTransaction (txId: string) = task {
     return ()
 }
 
-let ConfirmTransaction (txId: string) = task {
+let confirmTransaction (txId: string) = task {
     let payload = {| transaction_id = txId |}
     let json = JsonSerializer.Serialize payload
     use content = new StringContent(json, Encoding.UTF8, "application/json")

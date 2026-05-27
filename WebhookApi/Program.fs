@@ -21,19 +21,19 @@ module Api =
             | _ -> None
 
         // Executa o pipeline puro e trata os efeitos colaterais com base no padrão correspondente.
-        match ProcessWebhook token body IsConfirmed with
-        | Ok txId ->
-            MarkConfirmed txId
-            do! ConfirmTransaction txId
+        match processWebhook token body IsConfirmed with
+        | Ok transaction ->
+            markConfirmed transaction.TransactionId
+            do! confirmTransaction transaction.TransactionId
             ctx.Response.StatusCode <- 200
-            do! ctx.Response.WriteAsJsonAsync {| status = "confirmed"; transaction_id = txId |}
+            do! ctx.Response.WriteAsJsonAsync {| status = "confirmed"; transaction_id = transaction.TransactionId |}
 
         | Error (EarlyError (statusCode, response)) ->
             ctx.Response.StatusCode <- statusCode
             do! ctx.Response.WriteAsJsonAsync response
 
         | Error (TransactionError (statusCode, response, txId)) ->
-            do! CancelTransaction txId
+            do! cancelTransaction txId
             ctx.Response.StatusCode <- statusCode
             do! ctx.Response.WriteAsJsonAsync response
     }
