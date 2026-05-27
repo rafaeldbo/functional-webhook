@@ -5,11 +5,11 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.Hosting
 
+open Infrastructure
 
 module Api =
     open Models
     open Domain
-    open Infrastructure
 
     let HandleWebhook (ctx: HttpContext) = task {
         use reader = new StreamReader(ctx.Request.Body)
@@ -24,6 +24,7 @@ module Api =
         match processWebhook token body IsConfirmed with
         | Ok transaction ->
             markConfirmed transaction.TransactionId
+            do saveTransaction transaction
             do! confirmTransaction transaction.TransactionId
             ctx.Response.StatusCode <- 200
             do! ctx.Response.WriteAsJsonAsync {| status = "confirmed"; transaction_id = transaction.TransactionId |}
@@ -48,6 +49,8 @@ let main args =
         )
     ) |> ignore
     let app = builder.Build()
+
+    createDatabase()
 
     app.MapPost(
         "/webhook", 
